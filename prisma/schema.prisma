@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+} 
+
+// ENUMS ===============
+
+enum ReadingSourceType {
+  REALTIME
+  HISTORICAL
+}
+
+enum ColdUnitType {
+  COLD_ROOM
+  COLD_STORAGE
+  REEFER_TRUCK
+}
+
+enum UserRole {
+  MASTER
+  ADMIN
+  OPERATOR
+}
+
+// MODELS ==============================================
+
+model Enterprise {
+  id        String   @id @default(uuid())
+  name      String
+  cnpj      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isDeleted Boolean    @default(false) @map("is_deleted")
+  
+  users     User[]
+  coldUnits ColdUnit[]
+
+  @@map("enterprises")
+}
+
+model User {
+  id           String     @id @default(uuid())
+  name         String
+  email        String     @unique
+  password     String
+  role         UserRole   @default(OPERATOR)
+  isDeleted    Boolean    @default(false) @map("is_deleted")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  enterpriseId String     @map("enterprise_id")
+  enterprise   Enterprise @relation(fields: [enterpriseId], references: [id])
+
+  @@map("users")
+}
+
+model ColdUnit {
+  id             String     @id @default(uuid())
+  name           String
+  type           ColdUnitType
+  
+  // Limiares de temperatura para controle da Cold Chain
+  minTemperature Float      @map("min_temperature")
+  maxTemperature Float      @map("max_temperature")
+  
+  // Atributos específicos condicionais
+  licensePlate   String?    @map("license_plate") // Utilizado para caminhões (REEFER_TRUCK)
+  location       String?    // Utilizado para câmaras/depósitos fixos
+  
+  isDeleted      Boolean    @default(false) @map("is_deleted")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  enterpriseId   String     @map("enterprise_id")
+  enterprise     Enterprise @relation(fields: [enterpriseId], references: [id])
+
+  readings       TemperatureReading[]
+  alerts         Alert[]
+
+  @@map("cold_units")
+}
+
+model TemperatureReading {
+  id          String            @id @default(uuid())
+  temperature Float
+  sourceType  ReadingSourceType @default(REALTIME) @map("source_type")
+  timestamp   DateTime          @default(now())
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  coldUnitId  String            @map("cold_unit_id")
+  coldUnit    ColdUnit          @relation(fields: [coldUnitId], references: [id], onDelete: Cascade)
+
+  @@map("temperature_readings")
+}
+
+model Alert {
+  id          String    @id @default(uuid())
+  message     String
+  temperature Float
+  resolvedAt  DateTime? @map("resolved_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  coldUnitId  String    @map("cold_unit_id")
+  coldUnit    ColdUnit  @relation(fields: [coldUnitId], references: [id], onDelete: Cascade)
+
+  @@map("alerts")
+}
