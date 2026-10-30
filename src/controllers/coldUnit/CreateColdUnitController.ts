@@ -3,7 +3,7 @@ import { CreateColdUnitService } from '../../services/coldUnit/CreateColdUnitSer
 
 class CreateColdUnitController {
   async handle(req: Request, res: Response) {
-    const { name, type, minTemperature, maxTemperature, licensePlate, location } = req.body;
+    const { name, type, minTemperature, maxTemperature, licensePlate, isFixedLocation, location } = req.body;
 
     // O middleware isAuthenticated deve injetar o enterpriseId no req.user
     if (!req.user) {
@@ -20,6 +20,7 @@ class CreateColdUnitController {
         minTemperature,
         maxTemperature,
         licensePlate,
+        isFixedLocation,
         location,
         enterpriseId
       });

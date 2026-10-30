@@ -11,7 +11,7 @@ class ListTemperatureReadingsController {
     const enterpriseId = req.user.enterpriseId; 
 
     // 2. Filtros para o Gráfico do React (Big Data)
-    const { startDate, endDate, limit } = req.query;
+    const { startDate, endDate, limit, deviceId } = req.query;
 
     const listTemperatureReadingsService = new ListTemperatureReadingsService();
 
@@ -19,6 +19,7 @@ class ListTemperatureReadingsController {
       const temperatureReadings = await listTemperatureReadingsService.execute({
         coldUnitId,
         enterpriseId,
+        deviceId: deviceId as string,
         startDate: startDate as string,
         endDate: endDate as string,
         limit: limit ? Number(limit) : 100 // Fallback seguro

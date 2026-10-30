@@ -8,7 +8,12 @@ class DeleteEnterpriseController {
     const deleteEnterpriseService = new DeleteEnterpriseService();
     
      if (typeof id !== 'string') {
-      return res.status(400).json({ error: 'Invalid enterprise ID' });
+      return res.status(400).json({ error: 'ID da empresa inválido.' });
+    }
+
+    // Excluir a própria empresa removeria também o usuário logado
+    if (id === req.user.enterpriseId) {
+      return res.status(400).json({ error: "Você não pode excluir a sua própria empresa." });
     }
 
     try {

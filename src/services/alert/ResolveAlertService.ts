@@ -13,7 +13,8 @@ class ResolveAlertService {
         id: alertId, 
         resolvedAt: null, // Garante que ainda não foi resolvido
         coldUnit: {
-          enterpriseId: enterpriseId
+          enterpriseId: enterpriseId,
+          isDeleted: false
         }
       }
     });

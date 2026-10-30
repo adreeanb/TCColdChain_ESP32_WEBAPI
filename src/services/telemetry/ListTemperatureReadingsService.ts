@@ -1,20 +1,24 @@
-import { prisma } from '../../lib/prisma.js'; 
+import { prisma } from '../../lib/prisma.js';
 
 interface ListTemperatureReadingsRequest {
   coldUnitId: string;
   enterpriseId: string;
+  deviceId?: string;
   startDate?: string;
   endDate?: string;
   limit?: number;
 }
 
+const DEFAULT_LIMIT = 100;
+const MAX_LIMIT = 5000;
+
 class ListTemperatureReadingsService {
-  async execute({ coldUnitId, enterpriseId, startDate, endDate, limit = 100 }: ListTemperatureReadingsRequest) {
-    
+  async execute({ coldUnitId, enterpriseId, deviceId, startDate, endDate, limit = DEFAULT_LIMIT }: ListTemperatureReadingsRequest) {
+
     const coldUnit = await prisma.coldUnit.findFirst({
       where: {
         id: coldUnitId,
-        enterpriseId: enterpriseId, 
+        enterpriseId: enterpriseId,
         isDeleted: false
       }
     });
@@ -28,19 +32,37 @@ class ListTemperatureReadingsService {
       coldUnitId: coldUnitId,
     };
 
+    if (deviceId) whereClause.deviceId = deviceId;
+
     if (startDate || endDate) {
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+
+      if ((start && Number.isNaN(start.getTime())) || (end && Number.isNaN(end.getTime()))) {
+        throw new Error("Período inválido em startDate ou endDate.");
+      }
+
       whereClause.timestamp = {};
-      if (startDate) whereClause.timestamp.gte = new Date(startDate);
-      if (endDate) whereClause.timestamp.lte = new Date(endDate);
+      if (start) whereClause.timestamp.gte = start;
+      if (end) whereClause.timestamp.lte = end;
     }
+
+    const take = Number.isInteger(limit) && limit > 0 ? Math.min(limit, MAX_LIMIT) : DEFAULT_LIMIT;
 
     // 3. Busca das leituras com filtros, limites e ordenação
     const readings = await prisma.temperatureReading.findMany({
       where: whereClause,
       orderBy: {
-        timestamp: 'desc' 
+        timestamp: 'desc'
       },
-      take: limit,
+      take,
+      include: {
+        device: {
+          select: {
+            macAddress: true
+          }
+        }
+      }
     });
 
     return readings;

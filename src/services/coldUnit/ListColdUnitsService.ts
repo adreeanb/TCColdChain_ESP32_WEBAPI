@@ -1,10 +1,11 @@
 import { prisma } from '../../lib/prisma.js';
 
 class ListColdUnitsService {
-  async execute() {
-    // Busca todas as unidades de frio que não foram deletadas (isDeleted: false)
+  async execute(enterpriseId: string) {
+    // Busca as unidades de frio da empresa que não foram deletadas (isDeleted: false)
     const coldUnits = await prisma.coldUnit.findMany({
       where: {
+        enterpriseId: enterpriseId,
         isDeleted: false
       },
       orderBy: {

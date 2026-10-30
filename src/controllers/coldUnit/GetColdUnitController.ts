@@ -13,7 +13,7 @@ class GetColdUnitController {
     const getColdUnitService = new GetColdUnitService();
 
     try {
-      const coldUnit = await getColdUnitService.execute(id);
+      const coldUnit = await getColdUnitService.execute({ id, enterpriseId: req.user.enterpriseId });
       return res.json(coldUnit);
     } catch (error: any) {
       return res.status(404).json({ error: error.message });

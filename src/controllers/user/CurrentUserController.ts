@@ -1,51 +1,17 @@
-import { prisma } from '../../lib/prisma.js';
-import { hash } from 'bcryptjs';
-import { UserRole } from '@prisma/client'; // Importa o enum do Prisma
+import type { Request, Response } from 'express';
+import { CurrentUserService } from '../../services/user/CurrentUserService.js';
 
-interface CreateUserRequest {
-  name: string;
-  email: string;
-  password: string;
-  role?: UserRole;
-  enterpriseId: string;
-}
+class CurrentUserController {
+  async handle(req: Request, res: Response) {
+    const currentUserService = new CurrentUserService();
 
-class CreateUserService {
-  async execute({ name, email, password, role = 'OPERATOR', enterpriseId }: CreateUserRequest) {
-    // 1. Valida se o email já está em uso
-    const userAlreadyExists = await prisma.user.findUnique({
-      where: { email }
-    });
- 
-    if (userAlreadyExists) {
-      throw new Error("Este e-mail já está cadastrado.");
+    try {
+      const user = await currentUserService.execute(req.user.id);
+      return res.json(user);
+    } catch (error: any) {
+      return res.status(404).json({ error: error.message });
     }
-
-    // 2. Criptografa a senha (o custo 8 é um bom balanço entre segurança e velocidade)
-    const passwordHash = await hash(password, 8);
-
-    // 3. Cria o usuário no banco vinculado à empresa de quem o cadastrou
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: passwordHash,
-        role,
-        enterpriseId
-      },
-      // SELECT: Define exatamente quais campos retornar. NUNCA retorne o password.
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        enterpriseId: true,
-        createdAt: true
-      }
-    });
-
-    return user;
   }
 }
 
-export { CreateUserService };
+export { CurrentUserController };

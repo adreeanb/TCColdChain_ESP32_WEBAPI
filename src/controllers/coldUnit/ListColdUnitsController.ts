@@ -6,7 +6,7 @@ class ListColdUnitsController {
     const listColdUnitsService = new ListColdUnitsService();
 
     try {
-      const coldUnits = await listColdUnitsService.execute();
+      const coldUnits = await listColdUnitsService.execute(req.user.enterpriseId);
       return res.json(coldUnits);
     } catch (error: any) {
       return res.status(500).json({ error: "Erro interno ao listar unidades de frio." });

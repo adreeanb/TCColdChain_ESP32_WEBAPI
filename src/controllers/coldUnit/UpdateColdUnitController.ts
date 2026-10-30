@@ -4,7 +4,7 @@ import { UpdateColdUnitService } from '../../services/coldUnit/UpdateColdUnitSer
 class UpdateColdUnitController {
   async handle(req: Request, res: Response) {
     const { id } = req.params;
-    const { type, minTemperature, maxTemperature, licensePlate, location } = req.body;
+    const { name, type, minTemperature, maxTemperature, licensePlate, isFixedLocation, location } = req.body;
 
     const updateColdUnitService = new UpdateColdUnitService();
 
@@ -13,7 +13,7 @@ class UpdateColdUnitController {
     }
     
     try {
-      const updatedColdUnit = await updateColdUnitService.execute({ id, type, minTemperature, maxTemperature, licensePlate, location });
+      const updatedColdUnit = await updateColdUnitService.execute({ id, enterpriseId: req.user.enterpriseId, name, type, minTemperature, maxTemperature, licensePlate, isFixedLocation, location });
       return res.json(updatedColdUnit);
     } catch (error: any) {
       return res.status(400).json({ error: error.message });

@@ -10,10 +10,18 @@ class DeleteEnterpriseService {
       throw new Error("Empresa não encontrada ou já deletada.");
     }
 
-    // Aplica o Soft Delete 
-    const deletedEnterprise = await prisma.enterprise.delete({
-      where: { id }
-    });
+    // Aplica o Soft Delete na empresa, nos usuários e nas unidades de frio de forma atômica,
+    // encerrando os vínculos e desativando as placas da empresa
+    const [deletedEnterprise] = await prisma.$transaction([
+      prisma.enterprise.update({ where: { id }, data: { isDeleted: true } }),
+      prisma.user.updateMany({ where: { enterpriseId: id }, data: { isDeleted: true } }),
+      prisma.coldUnit.updateMany({ where: { enterpriseId: id }, data: { isDeleted: true } }),
+      prisma.associationHistory.updateMany({
+        where: { device: { enterpriseId: id }, endDate: null },
+        data: { endDate: new Date() }
+      }),
+      prisma.coldUnitDevice.updateMany({ where: { enterpriseId: id }, data: { isActive: false } })
+    ]);
 
     return deletedEnterprise;
   }

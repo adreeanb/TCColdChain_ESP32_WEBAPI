@@ -12,7 +12,7 @@ class DeleteColdUnitController {
     }
 
     try {
-      await deleteColdUnitService.execute(id);
+      await deleteColdUnitService.execute({ id, enterpriseId: req.user.enterpriseId });
       return res.json({ message: "Unidade de frio deletada com sucesso." });
     } catch (error: any) {
       return res.status(400).json({ error: error.message });

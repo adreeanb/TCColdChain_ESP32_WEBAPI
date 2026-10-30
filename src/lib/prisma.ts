@@ -4,61 +4,46 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 import process from 'process';
 
-const pool = new pg.Pool({ 
-  connectionString: process.env.DATABASE_URL 
+const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL
 });
 
 const adapter = new PrismaPg(pool);
-export const prisma = new PrismaClient({ adapter });
+const basePrisma = new PrismaClient({ adapter });
 
 const SOFT_DELETE_MODELS = ['Enterprise', 'User', 'ColdUnit']
 
-prisma.$extends({
+// findUnique fica de fora: as checagens de CNPJ/e-mail duplicado precisam enxergar registros excluídos
+const FILTERED_OPERATIONS = ['findMany', 'findFirst', 'findFirstOrThrow', 'count', 'aggregate', 'groupBy']
+
+export const prisma = basePrisma.$extends({
   query: {
     $allModels: {
-      // 1. Intercepta consultas de leitura (findMany, findFirst, count)
-      async findMany({ model, args, query }) {
-        if (SOFT_DELETE_MODELS.includes(model)) {
-          args.where = { isDeleted: false, ...args.where }
+      async $allOperations({ model, operation, args, query }) {
+        if (!SOFT_DELETE_MODELS.includes(model)) {
+          return query(args)
         }
-        return query(args)
-      },
 
-      async findFirst({ model, args, query }) {
-        if (SOFT_DELETE_MODELS.includes(model)) {
-          args.where = { isDeleted: false, ...args.where }
-        }
-        return query(args)
-      },
+        const softArgs = args as any
+        // O client expõe os modelos em camelCase (ColdUnit -> coldUnit)
+        const delegate = (basePrisma as any)[model.charAt(0).toLowerCase() + model.slice(1)]
 
-      async count({ model, args, query }) {
-        if (SOFT_DELETE_MODELS.includes(model)) {
-          args.where = { isDeleted: false, ...args.where }
+        // 1. Intercepta consultas de leitura
+        if (FILTERED_OPERATIONS.includes(operation)) {
+          softArgs.where = { isDeleted: false, ...softArgs.where }
         }
-        return query(args)
-      },
 
-      // 2. Intercepta deleções individuais (prisma.coldUnit.delete)
-      async delete({ model, args }) {
-        if (SOFT_DELETE_MODELS.includes(model)) {
-          return (prisma as any)[model].update({
-            where: args.where,
-            data: { isDeleted: true },
-          })
+        // 2. Intercepta deleções. Usam o client base, então ficam fora de um $transaction:
+        // dentro de transações, use update/updateMany com isDeleted: true
+        if (operation === 'delete') {
+          return delegate.update({ ...softArgs, data: { isDeleted: true } })
         }
-        // Se o modelo não usa soft delete, executa o delete físico normal
-        return (prisma as any)[model].delete({ where: args.where })
-      },
 
-      // 3. Intercepta deleções em massa (prisma.coldUnit.deleteMany)
-      async deleteMany({ model, args }) {
-        if (SOFT_DELETE_MODELS.includes(model)) {
-          return (prisma as any)[model].updateMany({
-            where: args.where,
-            data: { isDeleted: true },
-          })
+        if (operation === 'deleteMany') {
+          return delegate.updateMany({ ...softArgs, data: { isDeleted: true } })
         }
-        return (prisma as any)[model].deleteMany({ where: args })
+
+        return query(softArgs)
       },
     },
   },

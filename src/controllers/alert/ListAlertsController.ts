@@ -7,15 +7,18 @@ class ListAlertsController {
       // 1. Segurança: Isola a busca para a empresa do usuário logado
       const enterpriseId = req.user.enterpriseId; 
       
-      // Opcional: Pegar filtros da query (ex: listar apenas alertas não resolvidos)
-      const { status } = req.query; 
+      // Opcional: filtros e paginação pela query (ex: listar apenas alertas não resolvidos)
+      const { status, coldUnitId, page, pageSize } = req.query;
 
       const listAlertsService = new ListAlertsService();
       
       // 2. Passamos o enterpriseId para o service filtrar corretamente no banco
       const alerts = await listAlertsService.execute({
         enterpriseId,
-        status: status as string
+        status: status as string,
+        coldUnitId: coldUnitId as string,
+        ...(page ? { page: Number(page) } : {}),
+        ...(pageSize ? { pageSize: Number(pageSize) } : {})
       });
       
       return res.json(alerts);

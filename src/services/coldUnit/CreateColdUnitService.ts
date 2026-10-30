@@ -7,12 +7,13 @@ interface ColdUnitRequest {
   minTemperature: number;
   maxTemperature: number;
   licensePlate?: string;
+  isFixedLocation?: boolean;
   location?: string;
   enterpriseId: string; // vem do token de quem cria
 }
 
 class CreateColdUnitService {
-  async execute({ name, type, minTemperature, maxTemperature, licensePlate, location, enterpriseId }: ColdUnitRequest) {
+  async execute({ name, type, minTemperature, maxTemperature, licensePlate, isFixedLocation, location, enterpriseId }: ColdUnitRequest) {
     
     if (!name || !type) {
       throw new Error("Nome e Tipo são obrigatórios.");
@@ -31,6 +32,7 @@ class CreateColdUnitService {
         maxTemperature,
         enterpriseId,
         licensePlate: licensePlate ?? null, // Converte undefined para null
+        isFixedLocation: isFixedLocation ?? false,
         location: location ?? null,         // Converte undefined para null
     },
     });

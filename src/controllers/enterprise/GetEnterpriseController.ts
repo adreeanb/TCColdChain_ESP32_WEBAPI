@@ -7,7 +7,12 @@ class GetEnterpriseController {
     const id = req.params.id;
     
     if (typeof id !== 'string') {
-      return res.status(400).json({ error: 'Invalid enterprise ID' });
+      return res.status(400).json({ error: 'ID da empresa inválido.' });
+    }
+
+    // Só o MASTER consulta outras empresas. O 404 não revela se a empresa existe.
+    if (req.user.role !== 'MASTER' && id !== req.user.enterpriseId) {
+      return res.status(404).json({ error: "Empresa não encontrada ou inativa." });
     }
 
     const getEnterpriseService = new GetEnterpriseService();
